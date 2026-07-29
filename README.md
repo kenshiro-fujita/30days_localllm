@@ -53,3 +53,34 @@ Attentionなどの処理を何層も組み合わせ、文脈を踏まえて次�
 TinySwallowとQwenを同じ質問で比較し、同じくらいのサイズのモデルでも、回答には得意不得意があると分かりました。
 
 モデルはサイズだけで判断せず、実際の用途に近い質問で比較することが重要です。
+
+
+## Python環境とOllama APIの疎通確認
+
+### 仮想環境の準備
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install openai
+```
+
+仮想環境を有効化すると、ターミナルのプロンプトに `(.venv)` と表示されます。
+
+### OllamaのOpenAI互換APIを確認
+
+Ollamaが起動している状態で、次を実行します。
+
+```bash
+curl http://localhost:11434/v1/models
+```
+
+`http://localhost:11434/v1` は、Ollamaが提供するOpenAI互換APIの接続先です。
+
+### Pythonから疎通確認
+
+```bash
+python src/check_ollama_api.py
+```
+
+接続に成功すると、Ollamaに登録されているモデル一覧が表示されます。
