@@ -54,7 +54,6 @@ TinySwallowとQwenを同じ質問で比較し、同じくらいのサイズの�
 
 モデルはサイズだけで判断せず、実際の用途に近い質問で比較することが重要です。
 
-
 ## Python環境とOllama APIの疎通確認
 
 ### 仮想環境の準備
@@ -67,7 +66,7 @@ python -m pip install openai
 
 仮想環境を有効化すると、ターミナルのプロンプトに `(.venv)` と表示されます。
 
-### OllamaのOpenAI互換APIを確認
+### OllamaのAPIを確認
 
 Ollamaが起動している状態で、次を実行します。
 
@@ -75,7 +74,11 @@ Ollamaが起動している状態で、次を実行します。
 curl http://localhost:11434/v1/models
 ```
 
-`http://localhost:11434/v1` は、Ollamaが提供するOpenAI互換APIの接続先です。
+APIは、プログラム同士が決められた方法で情報を受け渡すための窓口です。`http://localhost:11434/v1`は、自分のPCで動くOllamaがAPIリクエストを受け付ける接続先です。
+
+Pythonコードでは、OpenAI公式の`openai`ライブラリをAPIクライアントとして使います。これはOpenAIのモデルを読み込むという意味ではありません。`base_url`を上記のOllamaのアドレスへ変更することで、リクエストはOpenAIではなくローカルのOllamaへ送られます。
+
+Ollamaは、OpenAIのAPIと似た項目やデータ形式でリクエストを受け付けられます。この性質を「OpenAI互換」と呼びます。
 
 ### Pythonから疎通確認
 
@@ -84,3 +87,82 @@ python src/check_ollama_api.py
 ```
 
 接続に成功すると、Ollamaに登録されているモデル一覧が表示されます。
+
+## Week 2で作ったPythonスクリプト
+
+実行前にOllamaを起動し、Pythonの仮想環境を有効にします。
+
+### TinySwallowへ1回質問する
+
+```bash
+python src/ask_tinyswallow.py
+```
+
+質問を1回入力し、TinySwallowが生成した回答を一括表示します。
+
+### 会話履歴を持つCLI
+
+```bash
+python src/chat_cli.py
+```
+
+Python側の`messages`へuserとassistantの発言を追加し、会話のたびに履歴全体をモデルへ渡します。`exit`を入力すると終了します。
+
+### ストリーミング応答
+
+```bash
+python src/stream_chat.py
+```
+
+回答を断片ごとに受け取り、生成途中から画面へ表示します。接続エラー、APIエラー、`Ctrl+C`による中断も処理します。
+
+### JSON形式の文章分類
+
+```bash
+python src/json_classifier.py
+```
+
+入力した文章を分類・要約・感情分析し、JSON形式で受け取ります。Python側でJSONの構文、必要な項目、値の許可範囲を確認します。
+
+## 日本語文章ツール
+
+TinySwallowを使い、日本語文章を要約・改善・分類するCLIアプリです。
+
+Ollamaが起動し、TinySwallowが利用できる状態で次を実行します。
+
+```bash
+python src/text_tool.py
+```
+
+起動後、処理モードを選択します。
+
+```text
+1: 要約
+2: 文章改善
+3: 分類
+```
+
+モード番号を入力してEnterを押した後、処理する文章を入力します。
+
+### 実行例
+
+```text
+モードを選んでください
+1: 要約
+2: 文章改善
+3: 分類
+> 3
+処理する文章を入力してください
+> 明日の会議資料を確認してください。
+
+結果:
+依頼
+```
+
+小型LLMの出力は必ずしも指示どおりになるとは限りません。文章改善では、入力にない情報の追加や、元の情報の削除が起きる場合があります。
+
+文章改善モードではFew-shotの例を与え、生成後に別のLLM呼び出しで情報の追加・削除・意味変更を検証します。最終的な合否はPython側で決定し、不合格の場合は改善結果を採用せず原文を表示します。
+
+## Week 2のまとめ
+
+Pythonアプリ、Ollama、TinySwallow、OpenAI互換APIの関係や、各スクリプトの役割は[`notes/day14_api_summary.md`](notes/day14_api_summary.md)にまとめています。
