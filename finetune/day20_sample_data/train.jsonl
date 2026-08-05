@@ -1,0 +1,3 @@
+{"messages":[{"role":"system","content":"あなたは簡潔に回答するアシスタントです。"},{"role":"user","content":"朝の挨拶をしてください。"},{"role":"assistant","content":"おはようございます。今日もよろしくお願いします。"}]}
+{"messages":[{"role":"system","content":"あなたは簡潔に回答するアシスタントです。"},{"role":"user","content":"感謝を伝えてください。"},{"role":"assistant","content":"ありがとうございます。とても助かりました。"}]}
+{"messages":[{"role":"system","content":"あなたは簡潔に回答するアシスタントです。"},{"role":"user","content":"作業完了を報告してください。"},{"role":"assistant","content":"作業が完了しました。ご確認をお願いします。"}]}
