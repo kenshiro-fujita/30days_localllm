@@ -54,7 +54,7 @@ Codexは、この文書を前提にして、毎日の学習・実装・ログ整
 目的は以下である。
 
 ```text
-Sakana AIのTinySwallowを中心にローカルLLMを実際に動かしながら、
+RLT-7Bを今後の基準モデルとしてローカルLLMを実際に動かしながら、
 LLMの仕組み、API利用、Embedding、RAG、
 LoRA/QLoRAファインチューニング、評価の流れを一通り理解する。
 ```
@@ -68,7 +68,7 @@ OpenAI互換APIの意味が分かる
 Embeddingとベクトル検索を説明できる
 RAGの基本を説明できる
 LoRA/QLoRAファインチューニングを一周できる
-TinySwallow、base Qwen、tuned Qwenの違いを比較できる
+RLT-7Bを基準に、TinySwallow、EvoLLM-JP、base Qwen、tuned Qwenの違いを比較できる
 RAGとFTの使い分けを説明できる
 評価質問セットを使ってモデル比較できる
 ```
@@ -79,7 +79,7 @@ RAGとFTの使い分けを説明できる
 
 30日後のゴールは以下。
 
-> Sakana AIのTinySwallowを中心にローカルLLMの推論・API利用・RAGを理解し、Qwen2.5-1.5B-InstructでLoRA/QLoRAファインチューニングを一周し、TinySwallow・base Qwen・tuned Qwenの違いを自分の言葉で説明できる状態になる。
+> RLT-7Bを基準モデルとしてローカルLLMの推論・RAGを理解し、適宜TinySwallow・EvoLLM-JPと比較する。さらにQwen2.5-1.5B-InstructでLoRA/QLoRAファインチューニングを一周し、モデルごとの得意・不得意とFT前後の違いを自分の言葉で説明できる状態になる。
 
 ---
 
@@ -87,9 +87,10 @@ RAGとFTの使い分けを説明できる
 
 | 用途             | モデル                                       | 役割                       |
 | -------------- | ----------------------------------------- | ------------------------ |
-| ローカル推論         | `SakanaAI/TinySwallow-1.5B-Instruct-GGUF` | このチャレンジの主役。Ollamaで動かす    |
-| Python API利用   | `SakanaAI/TinySwallow-1.5B-Instruct-GGUF` | OpenAI互換API経由で呼び出す対象     |
-| RAG            | `SakanaAI/TinySwallow-1.5B-Instruct-GGUF` | 検索結果を渡して回答させる対象          |
+| 通常のローカル推論      | `RLT-7B`                                  | Day 19以降の基準モデル。基本的にこれを使う |
+| RAG            | `RLT-7B`                                  | 検索結果を渡して回答させる基準モデル       |
+| 比較用            | `TinySwallow` / `EvoLLM-JP`               | 同一条件でモデル差を見るときに使う         |
+| 過去のAPI学習       | `SakanaAI/TinySwallow-1.5B-Instruct-GGUF` | Day 8〜14でOpenAI互換APIを学んだ対象   |
 | Embedding      | `bge-m3`                                  | 日本語文書のベクトル化に使う           |
 | FT練習           | `Qwen/Qwen2.5-1.5B-Instruct`              | LoRA/QLoRAファインチューニングの練習用 |
 | TinySwallowのFT | `SakanaAI/TinySwallow-1.5B-Instruct`      | 余力課題。必須成果物にはしない          |
@@ -98,8 +99,10 @@ RAGとFTの使い分けを説明できる
 
 # 5. なぜこの分担にするか
 
-TinySwallowはSakana AIの日本語向け小型モデルであり、このチャレンジのモチベーションに合っている。
-そのため、推論・API利用・RAGではTinySwallowを使い倒す。
+Day 19の番外編でTinySwallow、EvoLLM-JP、RLT-7Bを導入し、同じRAG条件で比較できるようになった。
+今後の通常利用では、回答品質を重視してRLT-7Bを基準モデルとする。
+
+ただし、すべての実行を毎回3モデルで繰り返す必要はない。モデル差そのものが学習対象になる場面、RAGあり/なしの評価、生成品質・速度・指示追従性を確認する場面では、同じ質問、検索結果、生成条件を使ってTinySwallowとEvoLLM-JPも適宜比較する。比較結果には、回答品質だけでなく生成時間も残す。
 
 一方で、初心者がいきなりTinySwallowをファインチューニング対象にすると、ライブラリ、トークナイザー、特殊トークン、変換周りで詰まる可能性がある。
 
@@ -127,7 +130,9 @@ Embedding:
 原則:
   Chat生成はOpenAI互換API。
   EmbeddingはOllama native API。
-  モデル選定に時間を使わない。
+  Day 19以降の通常生成はRLT-7Bを基準にする。
+  モデル差を観察する価値がある場面では、TinySwallowとEvoLLM-JPも同一条件で比較する。
+  Embeddingはbge-m3、FT練習はQwen2.5-1.5B-Instructに固定し、役割の異なるモデルまで入れ替えない。
 ```
 
 PythonでのOpenAI互換API呼び出しイメージ。
@@ -483,8 +488,8 @@ Codexは以下を守ること。
 | Day 16 | 8/5 | 水  | ベクトル検索実装                        | 1. `bge-m3` をOllamaのembeddingエンドポイント `/api/embed` で使う。<br>2. 10個程度の文章をベクトル化する。<br>3. 質問文に近い文章を検索する。<br>4. スコア付きで検索結果を表示する。                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | ベクトル検索、コサイン類似度、検索スコア                                 | 平日1h。成果物：`src/vector_search.py`                                                                                                                                                                                 |
 | Day 17 | 8/6 | 木  | RAG全体像                          | 1. RAGを「検索→文脈注入→回答生成」に分けて理解する。<br>2. RAGとFTの違いを軽く整理する。<br>3. TinySwallowに検索結果を渡す設計を考える。<br>4. RAG構成図を書く。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | RAG、外部知識、コンテキスト注入                                    | 平日1h。成果物：`notes/day17_rag_architecture.md`                                                                                                                                                                      |
 | Day 18 | 8/7 | 金  | チャンク分割                          | 1. Markdownメモを用意する。<br>2. 300字、500字、1000字で分割する。<br>3. 検索しやすさの違いを見る。<br>4. チャンクサイズと検索精度の関係を書く。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | チャンク設計、検索単位、コンテキスト設計                                 | 平日1h。成果物：`src/chunk_text.py`                                                                                                                                                                                    |
-| Day 19 | 8/8 | 土  | 最小RAG実装                         | 1. Markdown文書をチャンク化する。<br>2. `bge-m3` でEmbeddingして保存する。<br>3. 質問に近いチャンクを検索する。<br>4. 検索結果をTinySwallowに渡して回答させる。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | RAG実装、検索結果のプロンプト注入、根拠付き回答                            | 休日3h。成果物：`rag/rag_qa.py`                                                                                                                                                                                        |
-| Day 20 | 8/9 | 日  | RAG評価＋FT環境スモークテスト               | 【前半1.5h: RAG評価】<br>1. `eval/questions.md` からRAG向きの質問を選び、RAGなし/ありの回答を比較する。<br>2. 必要な素材は `eval/materials.md` を使う。<br>3. 結果を `eval/runs/day20_rag_without.md` と `eval/runs/day20_rag_with.md` に保存する。<br>4. 根拠に沿っているか確認し、間違い方を分類する。<br><br>【後半1.5h: FT環境疎通】<br>5. Colab + Unslothの公式LoRAノートブックを、サンプルデータのまま一度最後まで実行する。<br>6. Macの場合はmlx-lmのLoRAチュートリアルも試せる範囲で試す。<br>7. Day26で使う本命ルートを決める。<br>8. 詰まった場合はColab一本化を即決する。                                                                                                                                                                              | RAG評価、根拠性、ハルシネーション観察、FT環境の事前検証                       | 休日3h。成果物：`eval/day20_rag_eval.md`, `finetune/env_smoke_result.md`。この日がFT失敗リスク対策の最重要日。                                                                                                                           |
+| Day 19 | 8/8 | 土  | 最小RAG実装＋モデル比較（番外編）              | 1. Markdown文書をチャンク化する。<br>2. `bge-m3` でEmbeddingして保存する。<br>3. 質問に近いチャンクを検索する。<br>4. 同じ検索結果と生成条件をRLT-7B、TinySwallow、EvoLLM-JPへ渡して比較する。<br>5. 以後はRLT-7Bを通常利用の基準モデルとする。                                                                                                                                                                                                                                                                                                                                                                                       | RAG実装、検索結果のプロンプト注入、根拠付き回答、モデル比較                     | 休日3h。成果物：`rag/rag_qa.py`。3モデル比較が可能な実装を今後の評価にも再利用する。                                                                                                                                                         |
+| Day 20 | 8/9 | 日  | RAG評価＋FT環境スモークテスト               | 【前半1.5h: RAG評価】<br>1. `eval/questions.md` からRAG向きの質問を選び、基準モデルRLT-7BでRAGなし/ありの回答を比較する。<br>2. 必要な素材は `eval/materials.md` を使う。<br>3. 結果を `eval/runs/day20_rag_without.md` と `eval/runs/day20_rag_with.md` に保存する。<br>4. 代表的な質問はTinySwallow、EvoLLM-JPにも同一条件で投げ、回答品質、根拠への忠実さ、生成時間の差を比較する。<br>5. 根拠に沿っているか確認し、間違い方を分類する。<br><br>【後半1.5h: FT環境疎通】<br>6. Colab + Unslothの公式LoRAノートブックを、サンプルデータのまま一度最後まで実行する。<br>7. Macの場合はmlx-lmのLoRAチュートリアルも試せる範囲で試す。<br>8. Day26で使う本命ルートを決める。<br>9. 詰まった場合はColab一本化を即決する。 | RAG評価、モデル比較、根拠性、ハルシネーション観察、FT環境の事前検証                | 休日3h。成果物：`eval/day20_rag_eval.md`, `finetune/env_smoke_result.md`。全質問を3モデルで回す必要はなく、差が観察できる代表例に絞る。                                                                                                     |
 | Day 21 | 8/10 | 月  | RAGとFTの使い分け                     | 1. RAGは知識を外から渡す方法だと整理する。<br>2. FTは振る舞いや形式を寄せる方法だと整理する。<br>3. 向いている用途を表にする。<br>4. FTで学習させたい振る舞いを決める。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | RAG/FTの使い分け、学習対象の設計                                  | 平日1h。成果物：`notes/day21_rag_vs_finetune.md`                                                                                                                                                                       |
 | Day 22 | 8/11 | 火  | FT基礎とDay20ノートブック読解              | 1. SFT、LoRA、QLoRA、adapter、mergeを調べる。<br>2. Day20で動かしたUnslothまたはMLXのノートブックを開く。<br>3. LoRA rank、learning rate、epoch、batch size、target modulesがどこで指定されているか確認する。<br>4. base model、dataset、trainer、adapter保存先がどこで指定されているか確認する。<br>5. Day26で自作データに差し替える時に変更する箇所をメモする。                                                                                                                                                                                                                                                                                                                               | SFT、LoRA、QLoRA、adapter、FTノートブック読解、パラメータ理解            | 祝日3h。成果物：`notes/day22_finetune_strategy.md`。Day26で触る箇所と触らない箇所を明確にする。                                                                                                                                            |
 | Day 23 | 8/12 | 水  | FTデータセット設計                      | 1. 学習させたい振る舞いを1つ決める。例：文章を丁寧に改善する、要約する、業務メモ化する。<br>2. データ形式を `messages` 形式のJSONLに固定する。<br>3. system/user/assistantの役割を決める。<br>4. 商用LLMに `messages` 形式でデータ生成させるためのプロンプトを作る。                                                                                                                                                                                                                                                                                                                                                                                                                     | Chat形式dataset設計、JSONL設計、データ生成プロンプト設計                 | 平日1h。成果物：`dataset/dataset_spec.md`, `dataset/generate_prompt.md`。`instruction/input/output` 形式は使わない。                                                                                                            |
