@@ -1,0 +1,4 @@
+FROM ./tuned_qwen_f16.gguf
+
+PARAMETER temperature 0
+PARAMETER num_ctx 4096

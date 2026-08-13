@@ -166,3 +166,47 @@ python src/text_tool.py
 ## Week 2のまとめ
 
 Pythonアプリ、Ollama、TinySwallow、OpenAI互換APIの関係や、各スクリプトの役割は[`notes/day14_api_summary.md`](notes/day14_api_summary.md)にまとめています。
+
+## RAGで外部資料を使う
+
+Week 3では、Markdown文書をチャンクへ分割し、`bge-m3`でEmbeddingを作成して、質問に近いチャンクをLLMへ渡す最小RAGを実装しました。
+
+```bash
+python rag/rag_qa.py
+```
+
+RAGはモデル自体へ知識を学習させる方法ではありません。検索した外部資料を回答時の文脈として渡すため、更新される情報や回答根拠を確認したい用途に向いています。
+
+## 自作データでQwenをファインチューニングする
+
+Week 4では、会議メモを「要点・決定事項・次の行動」へ整理する`messages`形式のJSONLを作り、MLX LoRAでQwenを追加学習しました。
+
+- 学習データ：`dataset/train.jsonl`
+- 検証データ：`dataset/valid.jsonl`
+- 固定評価：`eval/ft_questions.md`
+- adapter：`finetune/tuned_adapter_v1/`
+- 学習結果：`finetune/smoke_test_result.md`、`eval/day27_ft_eval.md`
+
+adapterはMLX-LMでbase modelへ統合し、llama.cppでGGUFへ変換しました。さらにOllama登録時に`q4_K_M`へ量子化し、次のコマンドで呼び出せます。
+
+```bash
+ollama run tuned-qwen-day29
+```
+
+Ollama上のモデルサイズは約4.7GBです。配備手順とスモークテスト結果は[`finetune/day29_deployment.md`](finetune/day29_deployment.md)にまとめています。
+
+配備に使った約14GBの統合済みモデルと約15GBのF16 GGUFは、Ollama登録後に中間生成物として削除しています。再変換する場合はbase model、LoRA adapter、配備記録から再生成できます。
+
+## 最終評価で分かったこと
+
+TinySwallow、base Qwen、tuned Qwenを固定問題で比較した結果、tuned Qwenはbase Qwenの単純な上位互換にはなりませんでした。
+
+- 入力情報を保持し、base Qwenより大きな捏造が減ったケースがあった
+- RAG説明や業務ヒアリングなど、回答の方向性が良くなったケースがあった
+- 学習させた「要点・決定事項・次の行動」の形式を守れないケースが増えた
+- 学習データ由来とみられる表現が、関係の薄い汎用質問にも現れた
+- Train lossが下がっても、形式遵守や実用上の品質が一様に改善するとは限らなかった
+
+FTはモデル全体を単純に強くする操作ではなく、特定の振る舞いを変える操作として捉える必要があります。実際の用途に近い固定問題で、狙った改善と副作用の両方を評価することが重要です。
+
+全モデルの出力は質問単位で[`eval/runs/day29_final_outputs.md`](eval/runs/day29_final_outputs.md)へ統合し、結論と代表ケースは[`eval/final_eval.md`](eval/final_eval.md)へまとめています。
